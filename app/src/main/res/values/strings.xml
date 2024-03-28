@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Flight Search</string>
+    <string name="depart_label">DEPART</string>
+    <string name="arrive_label">ARRIVE</string>
+</resources>

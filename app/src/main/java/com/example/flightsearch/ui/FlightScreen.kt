@@ -1,0 +1,86 @@
+package com.example.flightsearch.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.example.flightsearch.R
+import com.example.flightsearch.data.Airport
+
+@Composable
+fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modifier) {
+    Card(modifier = modifier) {
+        Row {
+            Column(
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.depart_label),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = origin.IATA,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = origin.name,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Spacer(modifier = Modifier.padding(4.dp))
+                Text(
+                    text = stringResource(id = R.string.arrive_label),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = destination.IATA,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = destination.name,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            IconButton(
+                onClick = { /*TODO*/ }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                )
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+fun FlightCardPreview() {
+    FlightCard(
+        origin = Airport("LAX", "Los Angeles International Airport"),
+        destination = Airport("JFK", "John F. Kennedy International Airport")
+    )
+}
