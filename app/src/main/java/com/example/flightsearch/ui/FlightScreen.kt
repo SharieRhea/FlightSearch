@@ -16,21 +16,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flightsearch.R
 import com.example.flightsearch.data.Airport
-import com.example.flightsearch.data.Flight
+import com.example.flightsearch.ui.viewmodel.FlightSearchViewModel
 
 @Composable
-fun FlightResultsScreen(modifier: Modifier = Modifier) {
+fun FlightResultsScreen(
+    modifier: Modifier = Modifier,
+    viewModel: FlightSearchViewModel = viewModel(factory = FlightSearchViewModel.factory)
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
@@ -40,22 +44,22 @@ fun FlightResultsScreen(modifier: Modifier = Modifier) {
             text = "Flights from %s:".format("LAX"),
             style = MaterialTheme.typography.titleMedium
         )
-        FlightResultsList()
+        val airportsList by viewModel.getAirportList().collectAsState(initial = emptyList())
+        AirportResultsList(airportsList)
     }
 }
 
 @Composable
-fun FlightResultsList(modifier: Modifier = Modifier) {
-    LazyColumn {
-        items(listOf(
-            Flight(
-            origin = Airport("LAX", "Los Angeles International Airport"),
-            destination = Airport("JFK", "John F. Kennedy International Airport")))
+fun FlightResultsList(flightsList: List<Pair<Airport, Airport>>, modifier: Modifier = Modifier) {
+    LazyColumn(
+        modifier = modifier
+    ) {
+        items(flightsList
         )
-        { flight ->
+        { flightList ->
             FlightCard(
-                origin = flight.origin,
-                destination = flight.destination,
+                origin = flightList.first,
+                destination = flightList.second,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -63,10 +67,44 @@ fun FlightResultsList(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SearchBar(modifier: Modifier = Modifier) {
+fun AirportResultsList(airportsList: List<Airport>, modifier: Modifier = Modifier) {
+    LazyColumn(
+        modifier = modifier
+    ) {
+        items(airportsList
+        )
+        { airport ->
+            AirportCard(airport = airport)
+        }
+    }
+}
+
+@Composable
+fun AirportCard(airport: Airport, modifier: Modifier = Modifier) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier
+    ) {
+        Text(
+            text = airport.iata,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = airport.name,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+fun SearchBar(
+    modifier: Modifier = Modifier,
+    viewModel: FlightSearchViewModel = viewModel(factory = FlightSearchViewModel.factory)
+) {
     OutlinedTextField(
         value = "",
-        onValueChange = { /* TODO */ },
+        onValueChange = { viewModel.searchAirports(it) },
         placeholder = { Text(text = stringResource(R.string.search_placeholder))},
         leadingIcon = { Icon(
             imageVector = Icons.Default.Search,
@@ -95,7 +133,7 @@ fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modif
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = origin.IATA,
+                        text = origin.iata,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -113,7 +151,7 @@ fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modif
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = destination.IATA,
+                        text = destination.iata,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -145,10 +183,7 @@ fun FlightResultsScreenPreview() {
 @Preview
 @Composable
 fun FlightCardPreview() {
-    FlightCard(
-        origin = Airport("LAX", "Los Angeles International Airport"),
-        destination = Airport("JFK", "John F. Kennedy International Airport")
-    )
+    //FlightCard()
 }
 
 @Preview
