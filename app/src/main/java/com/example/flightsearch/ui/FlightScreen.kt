@@ -18,20 +18,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flightsearch.R
 import com.example.flightsearch.data.Airport
 import com.example.flightsearch.ui.viewmodel.FlightSearchViewModel
 
 @Composable
-fun FlightResultsScreen(
+fun SearchResultsScreen(
     modifier: Modifier = Modifier,
     viewModel: FlightSearchViewModel = viewModel(factory = FlightSearchViewModel.factory)
 ) {
@@ -39,14 +43,23 @@ fun FlightResultsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
     ) {
-        SearchBar(modifier = Modifier.fillMaxWidth())
-        Text(
-            text = "Flights from %s:".format("LAX"),
-            style = MaterialTheme.typography.titleMedium
+        SearchBar(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
         )
-        val airportsList by viewModel.getAirportList().collectAsState(initial = emptyList())
-        AirportResultsList(airportsList)
+        val lifecycleOwner = LocalLifecycleOwner.current
+        val uiState = viewModel.uiState.collectAsStateWithLifecycle(lifecycleOwner)
+        AirportResultsList(uiState.value.airportList)
     }
+}
+
+@Composable
+fun FlightResultsScreen(modifier: Modifier = Modifier) {
+    Text(
+        text = "Flights from %s:".format("LAX"),
+        style = MaterialTheme.typography.titleMedium
+    )
 }
 
 @Composable
@@ -67,7 +80,11 @@ fun FlightResultsList(flightsList: List<Pair<Airport, Airport>>, modifier: Modif
 }
 
 @Composable
-fun AirportResultsList(airportsList: List<Airport>, modifier: Modifier = Modifier) {
+fun AirportResultsList(
+    airportsList: List<Airport>,
+    modifier: Modifier = Modifier,
+) {
+    //val airportsList by viewModel.searchAirports(viewModel.uiState.collectAsState().value.search).collectAsState(initial = emptyList())
     LazyColumn(
         modifier = modifier
     ) {
@@ -102,9 +119,13 @@ fun SearchBar(
     modifier: Modifier = Modifier,
     viewModel: FlightSearchViewModel = viewModel(factory = FlightSearchViewModel.factory)
 ) {
+    var search by remember { mutableStateOf("")}
     OutlinedTextField(
-        value = "",
-        onValueChange = { viewModel.searchAirports(it) },
+        value = search,
+        onValueChange = {
+            viewModel.search(it)
+            search = it
+        },
         placeholder = { Text(text = stringResource(R.string.search_placeholder))},
         leadingIcon = { Icon(
             imageVector = Icons.Default.Search,
@@ -177,7 +198,7 @@ fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modif
 @Preview(showSystemUi = true)
 @Composable
 fun FlightResultsScreenPreview() {
-    FlightResultsScreen(modifier = Modifier.padding(8.dp))
+    SearchResultsScreen(modifier = Modifier.padding(8.dp))
 }
 
 @Preview

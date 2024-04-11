@@ -11,10 +11,10 @@ abstract class AirportDatabase : RoomDatabase() {
 
     companion object {
         @Volatile
-        private var Instance: AirportDatabase? = null
+        private var instance: AirportDatabase? = null
 
         fun getDatabase(context: Context): AirportDatabase {
-            return Instance ?: synchronized(this) {
+            return instance ?: synchronized(this) {
                 Room.databaseBuilder(
                     context = context,
                     klass = AirportDatabase::class.java,
@@ -23,7 +23,7 @@ abstract class AirportDatabase : RoomDatabase() {
                     .createFromAsset("database/flight_search.db")
                     .fallbackToDestructiveMigration()
                     .build()
-                    .also { Instance = it }
+                    .also { instance = it }
             }
         }
     }
