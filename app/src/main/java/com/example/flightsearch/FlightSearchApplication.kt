@@ -1,8 +1,10 @@
 package com.example.flightsearch
 
 import android.app.Application
-import com.example.flightsearch.data.AirportDatabase
+import com.example.flightsearch.data.AirportLocalDataSource
+import com.example.flightsearch.data.AirportRepository
 
 class FlightSearchApplication : Application() {
-    val database: AirportDatabase by lazy { AirportDatabase.getDatabase(this) }
+    private val database: AirportLocalDataSource by lazy { AirportLocalDataSource.getDatabase(this) }
+    val airportRepository: AirportRepository by lazy { AirportRepository(database) }
 }

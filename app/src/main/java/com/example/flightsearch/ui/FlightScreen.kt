@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,29 +38,56 @@ import com.example.flightsearch.data.Airport
 import com.example.flightsearch.ui.viewmodel.FlightSearchViewModel
 
 @Composable
-fun SearchResultsScreen(
+fun FlightSearchApp(
     modifier: Modifier = Modifier,
     viewModel: FlightSearchViewModel = viewModel(factory = FlightSearchViewModel.factory)
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle(lifecycleOwner)
+
+    val departingAirport = uiState.value.departingAirport
+    if (departingAirport == null)
+        SearchResultsScreen(
+            airportsList = uiState.value.airportSearchResultsList,
+            updateUiStateSearch = viewModel::search,
+            updateDepartingAirport = viewModel::updateDepartingAirport,
+            modifier = modifier)
+    else
+        FlightResultsScreen(departingAirport = departingAirport, modifier = modifier)
+}
+
+@Composable
+fun SearchResultsScreen(
+    airportsList: List<Airport>,
+    updateUiStateSearch: (String) -> Unit,
+    updateDepartingAirport: (Airport) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
     ) {
         SearchBar(
+            updateUiStateSearch = updateUiStateSearch,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
         )
-        val lifecycleOwner = LocalLifecycleOwner.current
-        val uiState = viewModel.uiState.collectAsStateWithLifecycle(lifecycleOwner)
-        AirportResultsList(uiState.value.airportList)
+        AirportResultsList(
+            airportsList = airportsList,
+            updateDepartingAirport = updateDepartingAirport,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 @Composable
-fun FlightResultsScreen(modifier: Modifier = Modifier) {
+fun FlightResultsScreen(
+    departingAirport: Airport,
+    modifier: Modifier = Modifier
+) {
     Text(
-        text = "Flights from %s:".format("LAX"),
+        text = "Flights from %s:".format(departingAirport.name),
         style = MaterialTheme.typography.titleMedium
     )
 }
@@ -67,9 +97,7 @@ fun FlightResultsList(flightsList: List<Pair<Airport, Airport>>, modifier: Modif
     LazyColumn(
         modifier = modifier
     ) {
-        items(flightsList
-        )
-        { flightList ->
+        items(flightsList) { flightList ->
             FlightCard(
                 origin = flightList.first,
                 destination = flightList.second,
@@ -82,48 +110,63 @@ fun FlightResultsList(flightsList: List<Pair<Airport, Airport>>, modifier: Modif
 @Composable
 fun AirportResultsList(
     airportsList: List<Airport>,
+    updateDepartingAirport: (Airport) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    //val airportsList by viewModel.searchAirports(viewModel.uiState.collectAsState().value.search).collectAsState(initial = emptyList())
     LazyColumn(
+        // todo: not use a negative number for spacing
+        verticalArrangement = Arrangement.spacedBy((-16).dp),
         modifier = modifier
     ) {
-        items(airportsList
-        )
-        { airport ->
-            AirportCard(airport = airport)
+        items(airportsList) { airport ->
+            AirportCard(
+                airport = airport,
+                updateDepartingAirport = updateDepartingAirport,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AirportCard(
+    airport: Airport,
+    updateDepartingAirport: (Airport) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        onClick = { updateDepartingAirport(airport) },
+        modifier = modifier
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(start = 8.dp)
+        ) {
+            Text(
+                text = airport.iata,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = airport.name,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
 
 @Composable
-fun AirportCard(airport: Airport, modifier: Modifier = Modifier) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = modifier
-    ) {
-        Text(
-            text = airport.iata,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = airport.name,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
 fun SearchBar(
+    updateUiStateSearch: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: FlightSearchViewModel = viewModel(factory = FlightSearchViewModel.factory)
 ) {
     var search by remember { mutableStateOf("")}
     OutlinedTextField(
         value = search,
         onValueChange = {
-            viewModel.search(it)
+            updateUiStateSearch(it)
             search = it
         },
         placeholder = { Text(text = stringResource(R.string.search_placeholder))},
@@ -197,18 +240,46 @@ fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modif
 
 @Preview(showSystemUi = true)
 @Composable
+fun SearchResultsScreenPreview() {
+    SearchResultsScreen(
+        airportsList = listOf(
+            Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
+            Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885),
+            Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885),
+            Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885),
+            Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885)
+        ),
+        updateDepartingAirport = {},
+        updateUiStateSearch = {},
+        modifier = Modifier.padding(8.dp))
+}
+
+@Preview(showSystemUi = true)
+@Composable
 fun FlightResultsScreenPreview() {
-    SearchResultsScreen(modifier = Modifier.padding(8.dp))
+    FlightResultsScreen(departingAirport = Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885))
+}
+
+@Preview
+@Composable
+fun AirportResultPreview() {
+    AirportCard(
+        airport = Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
+        updateDepartingAirport = {}
+    )
 }
 
 @Preview
 @Composable
 fun FlightCardPreview() {
-    //FlightCard()
+    FlightCard(
+        origin = Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
+        destination = Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885)
+    )
 }
 
 @Preview
 @Composable
 fun SearchBarPreview() {
-    SearchBar()
+    SearchBar(updateUiStateSearch = {})
 }
