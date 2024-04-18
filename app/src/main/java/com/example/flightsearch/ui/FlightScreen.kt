@@ -58,7 +58,13 @@ fun FlightSearchApp(
 
         val departingAirport = uiState.value.departingAirport
         if (departingAirport == null && uiState.value.searchString.isEmpty()) {
-            // FavoriteFlightsList()
+            Text(
+                text = "Favorites:"
+            )
+            FlightResultsList(
+                flightsList = uiState.value.favoritesList,
+                onClickFavorite = viewModel::toggleFavorite
+            )
         } else if (departingAirport == null) {
             SearchResultsScreen(
                 airportsList = uiState.value.airportsList,
@@ -126,10 +132,9 @@ fun FlightResultsList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
     ) {
-        items(flightsList) { flightList ->
+        items(flightsList) { flight ->
             FlightCard(
-                origin = flightList.origin,
-                destination = flightList.destination,
+                flight = flight,
                 onClickFavorite = onClickFavorite,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -210,8 +215,7 @@ fun SearchBar(
 
 @Composable
 fun FlightCard(
-    origin: Airport,
-    destination: Airport,
+    flight: Flight,
     onClickFavorite: (flight: Flight) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -234,12 +238,12 @@ fun FlightCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = origin.iata,
+                        text = flight.origin.iata,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = origin.name,
+                        text = flight.origin.name,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -252,22 +256,29 @@ fun FlightCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = destination.iata,
+                        text = flight.destination.iata,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = destination.name,
+                        text = flight.destination.name,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
+            // todo: favorites color is lost after searching for a new departing airport
+            val enabledColor: Color = MaterialTheme.colorScheme.primary
+            var iconColor: Color by remember { mutableStateOf(if (flight.favorite) enabledColor else Color.Gray) }
             IconButton(
-                onClick = { onClickFavorite(Flight(origin = origin, destination = destination)) },
+                onClick = {
+                    onClickFavorite(flight)
+                    iconColor = if (iconColor == Color.Gray) enabledColor else Color.Gray
+                },
                 modifier = Modifier.weight(0.1f)
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
+                    tint = iconColor,
                     contentDescription = null,
                 )
             }
@@ -325,8 +336,8 @@ fun AirportResultPreview() {
 @Composable
 fun FlightCardPreview() {
     FlightCard(
-        origin = Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
-        destination = Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885),
+        flight = Flight(Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
+        destination = Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885)),
         onClickFavorite = {}
     )
 }

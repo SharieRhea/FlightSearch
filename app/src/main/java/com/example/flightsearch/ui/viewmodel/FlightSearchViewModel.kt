@@ -44,7 +44,10 @@ class FlightSearchViewModel(private val airportRepository: AirportRepository) : 
                 // Create a flight from the origin airport to every other possible airport
                 val flightsList: MutableList<Flight> = mutableListOf()
                 for (airport in airports) {
-                    flightsList.add(Flight(departingAirport, airport))
+                    if (getFavorite(departingAirport.iata, airport.iata) == null)
+                        flightsList.add(Flight(departingAirport, airport))
+                    else
+                        flightsList.add(Flight(departingAirport, airport, favorite = true))
                 }
                 // Update UI state with a list of all valid flights
                 _uiState.update {
@@ -54,28 +57,36 @@ class FlightSearchViewModel(private val airportRepository: AirportRepository) : 
         }
     }
 
-    fun toggleFavorite(flight: Flight) {
-        viewModelScope.launch {
-            val departureCode = flight.origin.iata
-            val destinationCode = flight.destination.iata
-
-            // try to get favorite from the database
-            val favorite: Favorite? = airportRepository.getFavorite(
+    private fun getFavorite(departureCode: String, destinationCode: String): Favorite? {
+        var favorite: Favorite? = null
+        suspend {
+            favorite = airportRepository.getFavorite(
                 departureCode = departureCode,
                 destinationCode = destinationCode
             ).first()
+        }
+        return favorite
+    }
 
+    fun toggleFavorite(flight: Flight) {
+        viewModelScope.launch {
+            val favorite = getFavorite(flight.origin.iata, flight.destination.iata)
             // if it doesn't exist, add it, otherwise remove
-            if (favorite == null)
+            if (favorite == null) {
+                flight.favorite = true
                 airportRepository.addFavorite(
                     Favorite(
-                        departureCode = departureCode,
-                        destinationCode = destinationCode
+                        departureCode = flight.origin.iata,
+                        destinationCode = flight.destination.iata
                     )
                 )
-            else
+            }
+            else {
                 airportRepository.removeFavorite(favorite)
+                flight.favorite = false
+            }
         }
+        getFavoriteFlights()
     }
 
     private fun getFavoriteFlights() {
