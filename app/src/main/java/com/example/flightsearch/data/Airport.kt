@@ -14,4 +14,18 @@ data class Airport(
     val passengers: Int
 )
 
-data class Flight(val origin: Airport, val destination: Airport)
+@Entity(tableName = "favorite")
+data class Favorite(
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+    @ColumnInfo(name = "departure_code")
+    val departureCode: String,
+    @ColumnInfo(name = "destination_code")
+    val destinationCode: String
+)
+
+data class Flight(
+    val origin: Airport,
+    val destination: Airport,
+    var favorite: Boolean = false
+)

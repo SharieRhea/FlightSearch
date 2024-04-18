@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.flightsearch.R
 import com.example.flightsearch.data.Airport
+import com.example.flightsearch.data.Flight
 import com.example.flightsearch.ui.viewmodel.FlightSearchViewModel
 
 @Composable
@@ -45,21 +46,39 @@ fun FlightSearchApp(
     val lifecycleOwner = LocalLifecycleOwner.current
     val uiState = viewModel.uiState.collectAsStateWithLifecycle(lifecycleOwner)
 
-    val departingAirport = uiState.value.departingAirport
-    if (departingAirport == null)
-        SearchResultsScreen(
-            airportsList = uiState.value.airportSearchResultsList,
+    Column(
+        modifier = modifier
+    ) {
+        SearchBar(
             updateUiStateSearch = viewModel::search,
-            updateDepartingAirport = viewModel::updateDepartingAirport,
-            modifier = modifier)
-    else
-        FlightResultsScreen(departingAirport = departingAirport, modifier = modifier)
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth()
+        )
+
+        val departingAirport = uiState.value.departingAirport
+        if (departingAirport == null && uiState.value.searchString.isEmpty()) {
+            // FavoriteFlightsList()
+        } else if (departingAirport == null) {
+            SearchResultsScreen(
+                airportsList = uiState.value.airportsList,
+                updateDepartingAirport = viewModel::updateDepartingAirport,
+                modifier = modifier
+            )
+        } else {
+            FlightResultsScreen(
+                departingAirport = departingAirport,
+                flightsList = uiState.value.flightsList,
+                onClickFavorite = viewModel::toggleFavorite,
+                modifier = modifier
+            )
+        }
+    }
 }
 
 @Composable
 fun SearchResultsScreen(
     airportsList: List<Airport>,
-    updateUiStateSearch: (String) -> Unit,
     updateDepartingAirport: (Airport) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -67,12 +86,6 @@ fun SearchResultsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
     ) {
-        SearchBar(
-            updateUiStateSearch = updateUiStateSearch,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        )
         AirportResultsList(
             airportsList = airportsList,
             updateDepartingAirport = updateDepartingAirport,
@@ -84,23 +97,40 @@ fun SearchResultsScreen(
 @Composable
 fun FlightResultsScreen(
     departingAirport: Airport,
+    flightsList: List<Flight>,
+    onClickFavorite: (flight: Flight) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = "Flights from %s:".format(departingAirport.name),
-        style = MaterialTheme.typography.titleMedium
-    )
+    Column(
+        modifier = modifier
+    ) {
+        Text(
+            text = "Flights from %s:".format(departingAirport.name),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(8.dp)
+        )
+        FlightResultsList(
+            flightsList = flightsList,
+            onClickFavorite = onClickFavorite,
+            modifier = Modifier.padding(8.dp))
+    }
 }
 
 @Composable
-fun FlightResultsList(flightsList: List<Pair<Airport, Airport>>, modifier: Modifier = Modifier) {
+fun FlightResultsList(
+    flightsList: List<Flight>,
+    onClickFavorite: (flight: Flight) -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
     ) {
         items(flightsList) { flightList ->
             FlightCard(
-                origin = flightList.first,
-                destination = flightList.second,
+                origin = flightList.origin,
+                destination = flightList.destination,
+                onClickFavorite = onClickFavorite,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -179,7 +209,13 @@ fun SearchBar(
 }
 
 @Composable
-fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modifier) {
+fun FlightCard(
+    origin: Airport,
+    destination: Airport,
+    onClickFavorite: (flight: Flight) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // note: possibly replace weights with "..." for airport names that are too long
     Card(modifier = modifier) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -188,6 +224,7 @@ fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modif
             Column(
                 modifier = Modifier
                     .padding(8.dp)
+                    .weight(0.9f)
             ) {
                 Text(
                     text = stringResource(id = R.string.depart_label),
@@ -226,7 +263,8 @@ fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modif
                 }
             }
             IconButton(
-                onClick = { /*TODO*/ },
+                onClick = { onClickFavorite(Flight(origin = origin, destination = destination)) },
+                modifier = Modifier.weight(0.1f)
             ) {
                 Icon(
                     imageVector = Icons.Default.Star,
@@ -237,27 +275,41 @@ fun FlightCard(origin: Airport, destination: Airport, modifier: Modifier = Modif
     }
 }
 
-
 @Preview(showSystemUi = true)
 @Composable
 fun SearchResultsScreenPreview() {
     SearchResultsScreen(
         airportsList = listOf(
             Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
-            Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885),
-            Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885),
-            Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885),
-            Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885)
+            Airport(id = 1, iata = "MUC", name = "Munich International Airport", passengers = 47959885),
+            Airport(id = 1, iata = "MUC", name = "Munich International Airport", passengers = 47959885),
+            Airport(id = 1, iata = "MUC", name = "Munich International Airport", passengers = 47959885),
+            Airport(id = 1, iata = "MUC", name = "Munich International Airport", passengers = 47959885)
         ),
         updateDepartingAirport = {},
-        updateUiStateSearch = {},
         modifier = Modifier.padding(8.dp))
 }
 
 @Preview(showSystemUi = true)
 @Composable
 fun FlightResultsScreenPreview() {
-    FlightResultsScreen(departingAirport = Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885))
+    FlightResultsScreen(
+        departingAirport = Airport(id = 1, iata = "MUC", name = "Munich International Airport", passengers = 47959885),
+        flightsList = listOf(
+            Flight(
+                Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
+                Airport(id = 1, iata = "MUC", name = "Sheremetyevo - A.S. Pushkin international airport", passengers = 47959885)
+            ),
+            Flight(
+                Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
+                Airport(id = 1, iata = "MUC", name = "Munich International Airport", passengers = 47959885)
+            ),
+            Flight(
+                Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
+                Airport(id = 1, iata = "MUC", name = "Munich International Airport", passengers = 47959885)
+            )
+        ),
+        onClickFavorite = {})
 }
 
 @Preview
@@ -274,7 +326,8 @@ fun AirportResultPreview() {
 fun FlightCardPreview() {
     FlightCard(
         origin = Airport(id = 0, iata = "LAX", name = "Los Angeles International Airport", passengers = 42069),
-        destination = Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885)
+        destination = Airport(id = 1, iata = "MUC", name = "Munich Internation Airport", passengers = 47959885),
+        onClickFavorite = {}
     )
 }
 
