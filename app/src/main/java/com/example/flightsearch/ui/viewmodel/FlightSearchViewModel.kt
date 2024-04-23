@@ -13,7 +13,7 @@ import com.example.flightsearch.data.Favorite
 import com.example.flightsearch.data.Flight
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -23,7 +23,9 @@ class FlightSearchViewModel(private val airportRepository: AirportRepository) : 
 
     init {
         // update favorite flights list on launch to display when search is empty
-        getFavoriteFlights()
+        viewModelScope.launch {
+            getFavoriteFlights()
+        }
     }
 
     fun search(searchString: String) {
@@ -57,15 +59,11 @@ class FlightSearchViewModel(private val airportRepository: AirportRepository) : 
         }
     }
 
-    private fun getFavorite(departureCode: String, destinationCode: String): Favorite? {
-        var favorite: Favorite? = null
-        suspend {
-            favorite = airportRepository.getFavorite(
-                departureCode = departureCode,
-                destinationCode = destinationCode
-            ).first()
-        }
-        return favorite
+    private suspend fun getFavorite(departureCode: String, destinationCode: String): Favorite? {
+        return airportRepository.getFavorite(
+            departureCode = departureCode,
+            destinationCode = destinationCode
+        ).firstOrNull()
     }
 
     fun toggleFavorite(flight: Flight) {
@@ -80,33 +78,30 @@ class FlightSearchViewModel(private val airportRepository: AirportRepository) : 
                         destinationCode = flight.destination.iata
                     )
                 )
+                _uiState.value.favoritesList.add(flight)
             }
             else {
                 airportRepository.removeFavorite(favorite)
                 flight.favorite = false
+                _uiState.value.favoritesList.remove(flight)
             }
         }
-        getFavoriteFlights()
     }
 
-    private fun getFavoriteFlights() {
-        viewModelScope.launch {
-            airportRepository.getFavoriteFlights().collect { favorites ->
-                val favoritesList: MutableList<Flight> = mutableListOf()
-                for (favorite in favorites) {
-                    // get flight information from the iata codes
-                    var origin: Airport? = null
-                    var destination: Airport? = null
-                    airportRepository.getAirport(favorite.departureCode).collect { origin = it }
-                    airportRepository.getAirport(favorite.destinationCode).collect { destination = it }
-                    // add to favorites as long as both airports were found
-                    if (origin != null && destination != null)
-                        favoritesList.add(Flight(origin = origin!!, destination = destination!!, favorite = true))
-                }
+    private suspend fun getFavoriteFlights() {
+        airportRepository.getFavoriteFlights().collect { favorites ->
+            val favoritesList: MutableList<Flight> = mutableListOf()
+            for (favorite in favorites) {
+                // get flight information from the iata codes
+                val origin: Airport? = airportRepository.getAirport(favorite.departureCode).firstOrNull()
+                val destination: Airport? = airportRepository.getAirport(favorite.destinationCode).firstOrNull()
+                // add to favorites as long as both airports were found
+                if (origin != null && destination != null)
+                    favoritesList.add(Flight(origin = origin, destination = destination, favorite = true))
+            }
 
-                _uiState.update {
-                    it.copy(favoritesList = favoritesList)
-                }
+            _uiState.update {
+                it.copy(favoritesList = favoritesList)
             }
         }
     }
@@ -127,5 +122,5 @@ data class FlightUIState(
     var airportsList: List<Airport> = emptyList(),
     var departingAirport: Airport? = null,
     var flightsList: List<Flight> = emptyList(),
-    var favoritesList: List<Flight> = emptyList()
+    var favoritesList: MutableList<Flight> = mutableListOf()
 )

@@ -21,7 +21,7 @@ abstract class AirportLocalDataSource : RoomDatabase() {
                     name = "airport_database"
                 )
                     .createFromAsset("database/flight_search.db")
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigrationOnDowngrade()
                     .build()
                     .also { instance = it }
             }

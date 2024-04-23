@@ -32,8 +32,8 @@ interface AirportDao {
 
     @Query("""
         SELECT * FROM favorite
-        WHERE departure_code like :departureCode AND 
-        destination_code like :destinationCode
+        WHERE departure_code LIKE :departureCode AND 
+        destination_code LIKE :destinationCode
     """)
     fun getFavorite(departureCode: String, destinationCode: String): Flow<Favorite>
 

@@ -59,24 +59,24 @@ fun FlightSearchApp(
         val departingAirport = uiState.value.departingAirport
         if (departingAirport == null && uiState.value.searchString.isEmpty()) {
             Text(
-                text = "Favorites:"
+                text = "Favorite Routes:",
+                modifier = Modifier.padding(8.dp)
             )
             FlightResultsList(
                 flightsList = uiState.value.favoritesList,
-                onClickFavorite = viewModel::toggleFavorite
+                onClickFavorite = viewModel::toggleFavorite,
+                modifier = Modifier.padding(8.dp)
             )
         } else if (departingAirport == null) {
             SearchResultsScreen(
                 airportsList = uiState.value.airportsList,
                 updateDepartingAirport = viewModel::updateDepartingAirport,
-                modifier = modifier
             )
         } else {
             FlightResultsScreen(
                 departingAirport = departingAirport,
                 flightsList = uiState.value.flightsList,
                 onClickFavorite = viewModel::toggleFavorite,
-                modifier = modifier
             )
         }
     }
