@@ -50,6 +50,7 @@ fun FlightSearchApp(
         modifier = modifier
     ) {
         SearchBar(
+            getSearchContent = viewModel::getSearchContent,
             updateUiStateSearch = viewModel::search,
             modifier = Modifier
                 .padding(8.dp)
@@ -149,7 +150,6 @@ fun AirportResultsList(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        // todo: not use a negative number for spacing
         verticalArrangement = Arrangement.spacedBy((-16).dp),
         modifier = modifier
     ) {
@@ -194,15 +194,16 @@ fun AirportCard(
 
 @Composable
 fun SearchBar(
+    getSearchContent: () -> String,
     updateUiStateSearch: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var search by remember { mutableStateOf("")}
+    var search by remember { mutableStateOf(getSearchContent())}
     OutlinedTextField(
         value = search,
         onValueChange = {
-            updateUiStateSearch(it)
             search = it
+            updateUiStateSearch(it)
         },
         placeholder = { Text(text = stringResource(R.string.search_placeholder))},
         leadingIcon = { Icon(
@@ -219,7 +220,6 @@ fun FlightCard(
     onClickFavorite: (flight: Flight) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // note: possibly replace weights with "..." for airport names that are too long
     Card(modifier = modifier) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -266,7 +266,6 @@ fun FlightCard(
                     )
                 }
             }
-            // todo: favorites color is lost after searching for a new departing airport
             val enabledColor: Color = MaterialTheme.colorScheme.primary
             var iconColor: Color by remember { mutableStateOf(if (flight.favorite) enabledColor else Color.Gray) }
             IconButton(
@@ -345,5 +344,6 @@ fun FlightCardPreview() {
 @Preview
 @Composable
 fun SearchBarPreview() {
-    SearchBar(updateUiStateSearch = {})
+    SearchBar(updateUiStateSearch = {}, getSearchContent = { "" } )
+
 }

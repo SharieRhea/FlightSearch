@@ -11,25 +11,41 @@ import com.example.flightsearch.data.Airport
 import com.example.flightsearch.data.AirportRepository
 import com.example.flightsearch.data.Favorite
 import com.example.flightsearch.data.Flight
+import com.example.flightsearch.data.SearchBarRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
-class FlightSearchViewModel(private val airportRepository: AirportRepository) : ViewModel() {
+class FlightSearchViewModel(private val airportRepository: AirportRepository, private val searchBarRepository: SearchBarRepository) : ViewModel() {
     private val _uiState by lazy { MutableStateFlow(FlightUIState()) }
     val uiState: StateFlow<FlightUIState> = _uiState
 
     init {
         // update favorite flights list on launch to display when search is empty
         viewModelScope.launch {
+            val searchContent = searchBarRepository.getSearchContent().first()
             getFavoriteFlights()
+            _uiState.update {
+                it.copy(searchString = searchContent)
+            }
         }
+    }
+
+    fun getSearchContent(): String {
+        val searchContent: String
+        runBlocking {
+            searchContent = searchBarRepository.getSearchContent().first()
+        }
+        return searchContent
     }
 
     fun search(searchString: String) {
         viewModelScope.launch {
+            searchBarRepository.saveSearchContent(searchString)
             // Query database for airports with "searchString" in their name or iata code
             airportRepository.searchAirports(searchString).collect { airports ->
                 _uiState.update {
@@ -111,7 +127,7 @@ class FlightSearchViewModel(private val airportRepository: AirportRepository) : 
         val factory : ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application = (this[APPLICATION_KEY] as FlightSearchApplication)
-                FlightSearchViewModel(application.airportRepository)
+                FlightSearchViewModel(application.airportRepository, application.searchBarRepository)
             }
         }
     }
