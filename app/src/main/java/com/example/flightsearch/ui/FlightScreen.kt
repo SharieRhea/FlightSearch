@@ -1,6 +1,5 @@
 package com.example.flightsearch.ui
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -59,8 +58,6 @@ fun FlightSearchApp(
         )
 
         val departingAirport = uiState.value.departingAirport
-        Log.d("PREFERENCES", "uiState departingAirport: $departingAirport")
-        Log.d("PREFERENCES", "uiState Search: ${uiState.value.searchString}")
         if (departingAirport == null && uiState.value.searchString.isEmpty()) {
             Text(
                 text = "Favorite Routes:",
