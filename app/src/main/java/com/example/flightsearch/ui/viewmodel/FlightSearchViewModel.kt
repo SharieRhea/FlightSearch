@@ -25,13 +25,17 @@ class FlightSearchViewModel(private val airportRepository: AirportRepository, pr
     val uiState: StateFlow<FlightUIState> = _uiState
 
     init {
-        // update favorite flights list on launch to display when search is empty
         viewModelScope.launch {
-            val searchContent = searchBarRepository.getSearchContent().first()
-            getFavoriteFlights()
             _uiState.update {
+                // get the user's last search contents from the DataStore
+                val searchContent: String = getSearchContent()
+                // populate the airports list for display search results
+                search(searchContent)
+                // update UI state so that the search bar will display the last search contents on init
                 it.copy(searchString = searchContent)
             }
+            // update favorite flights list on launch to display when search is empty
+            getFavoriteFlights()
         }
     }
 
